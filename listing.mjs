@@ -28,17 +28,20 @@ function assembleSummaryAST(fileData, imageWidth, imageHeight) {
     // Left column: date and author
     const leftCell = {
       type: 'tableCell',
+      class: 'listing-summary-cell-left',
       children: []
     };
     if (date) {
       leftCell.children.push({
         type: 'paragraph',
+        class: 'listing-summary-date',
         children: [{ type: 'text', value: safeText(date) }]
       });
     }
     if (author) {
       leftCell.children.push({
         type: 'paragraph',
+        class: 'listing-summary-author',
         children: [{ type: 'text', value: safeText(author) }]
       });
     }
@@ -47,6 +50,7 @@ function assembleSummaryAST(fileData, imageWidth, imageHeight) {
     // Middle column: title (linked) and description
     const middleCell = {
       type: 'tableCell',
+      class: 'listing-summary-cell-middle',
       children: []
     };
     if (title) {
@@ -56,6 +60,7 @@ function assembleSummaryAST(fileData, imageWidth, imageHeight) {
         children: [
           {
             type: 'link',
+            class: 'listing-summary-title',
             url: `/${filename.replace(/\.md$/, '')}`,
             children: [{ type: 'text', value: safeText(title) }]
           }
@@ -65,6 +70,7 @@ function assembleSummaryAST(fileData, imageWidth, imageHeight) {
     if (description) {
       middleCell.children.push({
         type: 'paragraph',
+        class: 'listing-summary-description',
         children: [{ type: 'text', value: safeText(description) }]
       });
     }
@@ -73,6 +79,7 @@ function assembleSummaryAST(fileData, imageWidth, imageHeight) {
     // Right column: thumbnail
     const rightCell = {
       type: 'tableCell',
+      class: 'listing-summary-cell-right',
       children: []
     };
     if (thumbnail && typeof thumbnail === 'object' && thumbnail.type === 'image') {
@@ -83,6 +90,7 @@ function assembleSummaryAST(fileData, imageWidth, imageHeight) {
       rightCell.children.push({
         type: 'image',
         url: thumbnail,
+        class: 'listing-summary-thumbnail',
         alt: safeText(title),
         ...(imageWidth ? { width: imageWidth } : {}),
         ...(imageHeight ? { height: imageHeight } : {})
@@ -107,9 +115,9 @@ function assembleTableAST(fileData) {
   const headerRow = {
     type: 'tableRow',
     children: [
-      { type: 'tableCell', children: [{ type: 'paragraph', children: [{ type: 'text', value: 'Date' }] }] },
-      { type: 'tableCell', children: [{ type: 'paragraph', children: [{ type: 'text', value: 'Title' }] }] },
-      { type: 'tableCell', children: [{ type: 'paragraph', children: [{ type: 'text', value: 'Author' }] }] }
+      { type: 'tableCell', class: 'listing-table-cell-left', children: [{ type: 'paragraph', class: 'listing-table-date-header', children: [{ type: 'text', value: 'Date' }] }] },
+      { type: 'tableCell', class: 'listing-table-cell-middle', children: [{ type: 'paragraph', class: 'listing-table-title-header', children: [{ type: 'text', value: 'Title' }] }] },
+      { type: 'tableCell', class: 'listing-table-cell-right', children: [{ type: 'paragraph', class: 'listing-table-author-header', children: [{ type: 'text', value: 'Author' }] }] }
     ]
   };
 
@@ -117,12 +125,13 @@ function assembleTableAST(fileData) {
     return {
       type: 'tableRow',
       children: [
-        { type: 'tableCell', children: [{ type: 'paragraph', children: [{ type: 'text', value: date || '' }] }] },
+        { type: 'tableCell', children: [{ type: 'paragraph', class: 'listing-table-date', children: [{ type: 'text', value: date || '' }] }] },
         {
           type: 'tableCell',
           children: [
             {
               type: 'paragraph',
+              class: 'listing-table-title',
               children: [
                 {
                   type: 'link',
@@ -133,7 +142,7 @@ function assembleTableAST(fileData) {
             }
           ]
         },
-        { type: 'tableCell', children: [{ type: 'paragraph', children: [{ type: 'text', value: author || '' }] }] }
+        { type: 'tableCell', children: [{ type: 'paragraph', class: 'listing-table-author', children: [{ type: 'text', value: author || '' }] }] }
       ]
     };
   });
@@ -149,6 +158,7 @@ function renderGridCardHeader(template, title, date, url) {
   const text = template.replace('{title}', title || '').replace('{date}', date || '');
   return {
     type: 'header',
+    class: 'listing-grid-header',
     children: [
       {
         type: 'link',
@@ -173,10 +183,10 @@ function assembleGridAST(fileData, gridColumns = [1, 1, 2, 3], imageWidth, image
         renderGridCardHeader(gridCardHeaderTemplate, title, date, url)
       ];
 
-      // Add thumbnail as an image node if it exists
       if (thumbnail) {
         cardChildren.push({
           type: 'image',
+          class: 'listing-grid-thumbnail',
           url: thumbnail,
           alt: title || '',
           ...(imageWidth ? { width: imageWidth } : {}),
@@ -184,10 +194,10 @@ function assembleGridAST(fileData, gridColumns = [1, 1, 2, 3], imageWidth, image
         });
       }
 
-      // Add description as a paragraph below the thumbnail if it exists
       if (description) {
         cardChildren.push({
           type: 'paragraph',
+          class: 'listing-grid-description',
           children: [{ type: 'text', value: description }]
         });
       }
@@ -202,12 +212,14 @@ function assembleGridAST(fileData, gridColumns = [1, 1, 2, 3], imageWidth, image
         type: 'footer',
         children: [{
           type: 'paragraph',
+          class: 'listing-grid-author',
           children: [{ type: 'text', value: author || '' }]
         }]
       });
 
       return {
         type: 'card',
+        class: 'listing-grid-card',
         children: cardChildren
       };
     })
