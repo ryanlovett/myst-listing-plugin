@@ -303,7 +303,7 @@ const listingDirective = {
     },
     gridCardHeader: {
       type: String,
-      doc: 'Template for the grid card header. Supports {title} and {date}. Default: "{title}"',
+      doc: 'Template for the grid card header. Supports {title} and {date}. Default: {title}',
       alias: ['grid-card-header']
     }
   },
