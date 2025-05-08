@@ -384,7 +384,7 @@ const listingDirective = {
         }
         // If no thumbnail and imagePlaceholder is set, use it
         if (!thumbnail && imagePlaceholder) {
-          thumbnail = imagePlaceholder.startsWith('/') ? imagePlaceholder : '/' + imagePlaceholder;
+          thumbnail = resolveThumbnailPath(filePath, imagePlaceholder, listingPageDir);
         }
         // Defensive heading node creation
         if (typeof title !== 'string') {
