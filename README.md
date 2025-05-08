@@ -1,6 +1,6 @@
 # MyST Document Listing Plugin
 
-This plugin provides a flexible `document-listing` directive for [MyST Markdown](https://mystmd.org/) projects. It allows you to display lists or grids of documents (such as blog posts, news, or updates) by reading markdown files from directories or matching glob patterns. The plugin supports sorting, custom grid layouts, thumbnail images, and more.
+This plugin provides a flexible `listing` directive for [MyST Markdown](https://mystmd.org/) projects. It allows you to display lists or grids of documents (such as blog posts, news, or updates) by reading markdown files from directories or matching glob patterns. The plugin supports sorting, custom grid layouts, thumbnail images, and more.
 
 This feature was inspired by Quarto's [Document Listings](https://quarto.org/docs/websites/website-listings.html).
 
@@ -33,14 +33,14 @@ project:
 
 ## Usage
 
-Add the `document-listing` directive to your markdown files using the triple-colon syntax. You can use it in three main modes: summary (default), table, and grid.
+Add the `listing` directive to your markdown files using the triple-colon syntax. You can use it in three main modes: summary (default), table, and grid.
 
 ### Basic Example (Summary Table)
 
 Summarize markdown files within `motd/`.
 
 ```
-:::{document-listing}
+:::{listing}
 :contents: motd
 :max-items: 5
 :type: summary
@@ -49,8 +49,10 @@ Summarize markdown files within `motd/`.
 
 ### Table Example
 
+Display document attributes in a simple table. You can use comma-separated values and glob patterns for the `:contents:` option:
+
 ```
-:::{document-listing}
+:::{listing}
 :contents: apple.md,orange.md,banana.md
 :type: table
 :max-items: 5
@@ -62,7 +64,7 @@ Summarize markdown files within `motd/`.
 Display all blog post `index.md` files in a grid.
 
 ```
-:::{document-listing}
+:::{listing}
 :contents: blog/*/index.md
 :type: grid
 :image-width: 120px
@@ -70,18 +72,6 @@ Display all blog post `index.md` files in a grid.
 :grid-columns: 1
 :grid-include-body: true
 :grid-card-header: Blog: {date} {title}
-:::
-```
-
-### Using Multiple Directories or Patterns
-
-You can use comma-separated values and glob patterns for the `:contents:` option:
-
-```
-:::{document-listing}
-:contents: motd, motd-blog/*/index.md, blog/**/*.md
-:max-items: 10
-:type: grid
 :::
 ```
 
