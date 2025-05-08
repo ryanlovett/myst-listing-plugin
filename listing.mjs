@@ -283,12 +283,12 @@ const listingDirective = {
     },
     imageWidth: {
       type: String,
-      doc: 'Width to set for thumbnail images (e.g., "120px" or "50%")',
+      doc: 'Thumbnail image width (e.g., "120px" or "50%")',
       alias: ['image-width']
     },
     imageHeight: {
       type: String,
-      doc: 'Height to set for thumbnail images (e.g., "120px" or "50%")',
+      doc: 'Thumbnail image height (e.g., "120px" or "50%"). Default: 120px',
       alias: ['image-height']
     },
     imagePlaceholder: {
@@ -326,7 +326,7 @@ const listingDirective = {
     const type = options.type || 'summary';
     // Accept comma-delimited string for gridColumns
     const gridCols = gridColumns.split(',').map(s => Number(s.trim())).filter(n => !isNaN(n));
-    const imageWidth = options.imageWidth || options['image-width'] || '120px';
+    const imageWidth = options.imageWidth || options['image-width'] || '';
     const imageHeight = options.imageHeight || options['image-height'] || '120px';
     const imagePlaceholder = options.imagePlaceholder || options['image-placeholder'] || '';
     const gridIncludeBody = options.gridIncludeBody || options['grid-include-body'] || false;
