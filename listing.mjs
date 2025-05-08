@@ -61,7 +61,7 @@ function assembleSummaryAST(fileData, imageWidth, imageHeight) {
           {
             type: 'link',
             class: 'listing-summary-title',
-            url: `/${filename.replace(/\.md$/, '')}`,
+            url: `${filename.replace(/\.md$/, '')}`,
             children: [{ type: 'text', value: safeText(title) }]
           }
         ]
@@ -135,7 +135,7 @@ function assembleTableAST(fileData) {
               children: [
                 {
                   type: 'link',
-                  url: `/${filename.replace(/\.md$/, '')}`,
+                  url: `${filename.replace(/\.md$/, '')}`,
                   children: [{ type: 'text', value: title || '' }]
                 }
               ]
@@ -178,7 +178,7 @@ function assembleGridAST(fileData, gridColumns = [1, 1, 2, 3], imageWidth, image
     type: 'grid',
     columns: columns,
     children: fileData.map(({ title, author, description, thumbnail, filename, bodyNodes, date }) => {
-      const url = `/${filename.replace(/\.md$/, '')}`;
+      const url = `${filename.replace(/\.md$/, '')}`;
       const cardChildren = [
         renderGridCardHeader(gridCardHeaderTemplate, title, date, url)
       ];
