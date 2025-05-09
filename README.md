@@ -18,6 +18,8 @@ project:
 
 ### Dependencies
 
+`listing.mjs` dependencies:
+
  - `myst-parser` is used to parse the contents of MyST markdown files.
     ```bash
     npm install myst-parser
@@ -29,6 +31,13 @@ project:
  - `glob` is used to match file patterns
     ```bash
     npm install glob
+    ```
+
+`myst-plugin-driver.mjs` dependencies:
+
+ - `commander` is used with parse command-line options.
+    ```bash
+    npm install commander
     ```
 
 ## Usage
@@ -100,8 +109,43 @@ The following frontmatter fields will be read by the plugin:
 - `description`: A short summary or description.
 - `thumbnail`: Path to a thumbnail image (relative to the document).
 
-## Examples
 
+## Command-line Plugin Driver
+
+The `myst-plugin-driver.mjs` script allows you to simulate and debug MyST plugin directives directly from the command line. This is useful for testing and inspecting the output of the `listing` directive (or any other directive) without running a full MyST build.
+
+### Primary Use Case
+
+To generate an RSS feed from a blog index using the `listing` directive:
+
+```
+./myst-plugin-driver.mjs --file blog.md --directive listing --type rss --baseUrl https://example.com
+```
+
+- `--file` (or `-f`): Path to the markdown file containing the directive.
+- `--directive` (or `-d`): The directive to simulate (default: `listing`).
+- `--type`: The type of listing output (e.g., `rss`, `table`, `grid`, etc.).
+- `--baseUrl`: The base URL to prefix to links in RSS output.
+
+### Debugging Other Listing Types or Directives
+
+You can use `myst-plugin-driver.mjs` to debug other listing types or any directive supported by your plugin. For example:
+
+```
+./myst-plugin-driver.mjs --file blog.md --directive listing --type table
+./myst-plugin-driver.mjs --file blog.md --directive listing --type grid
+./myst-plugin-driver.mjs --file blog.md --directive mycustom --someOption value
+```
+
+You can also pass additional options supported by your directive using `--option value` pairs.
+
+### Example
+
+```
+./myst-plugin-driver.mjs --file blog.md --directive listing --type grid --maxItems 5 --sort "date desc"
+```
+
+This will output the AST or result for the specified directive and options, making it easy to debug and inspect plugin behavior.
 
 ## Notes
 
