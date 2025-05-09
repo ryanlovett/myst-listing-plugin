@@ -228,6 +228,88 @@ function assembleGridAST(fileData, gridColumns = [1, 1, 2, 3], imageWidth, image
   return [grid];
 }
 
+function assembleRSSXML(fileData, baseUrl) {
+  // Helper to render bodyNodes as HTML
+  const renderNode = (node) => {
+    if (node.type === 'paragraph') {
+      const text = (node.children || []).map(renderNode).join('');
+      return `<p>${text}</p>`;
+    } else if (node.type === 'text') {
+      return node.value || '';
+    } else if (node.type === 'heading') {
+      const text = (node.children || []).map(renderNode).join('');
+      return `<h${node.depth || 1}>${text}</h${node.depth || 1}>`;
+    } else if (node.type === 'list') {
+      const tag = node.ordered ? 'ol' : 'ul';
+      const items = (node.children || []).map(renderNode).join('');
+      return `<${tag}>${items}</${tag}>`;
+    } else if (node.type === 'listItem') {
+      const text = (node.children || []).map(renderNode).join('');
+      return `<li>${text}</li>`;
+    } else if (node.type === 'link') {
+      const text = (node.children || []).map(renderNode).join('');
+      return `<a href="${node.url}">${text}</a>`;
+    } else if (node.type === 'image') {
+      return `<img src="${node.url}" alt="${node.alt || ''}" />`;
+    }
+    if (Array.isArray(node.children)) {
+      return node.children.map(renderNode).join('');
+    }
+    return '';
+  };
+
+  const escape = (str) => String(str || '').replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+  // Get channel title and description from the first file's frontmatter if available
+  let channelTitle = 'RSS Feed';
+  let channelDescription = '';
+  if (fileData.length > 0) {
+    if (fileData[0].title) channelTitle = fileData[0].title;
+    if (fileData[0].description) channelDescription = fileData[0].description;
+  }
+
+  const itemsXml = fileData.map(({ title, authors, date, description, filename, bodyNodes }) => {
+    // Ensure link is absolute using baseUrl
+    let link = '';
+    if (baseUrl) {
+      const base = baseUrl.replace(/\/$/, '');
+      const rel = filename.replace(/\.md$/, '');
+      link = `${base}/${rel}`;
+    } else {
+      link = filename.replace(/\.md$/, '');
+    }
+    const authorStr = Array.isArray(authors) ? authors.map(a => a.name).filter(Boolean).join(', ') : '';
+    let bodyHtml = '';
+    if (Array.isArray(bodyNodes)) {
+      bodyHtml = bodyNodes.map(renderNode).join('');
+    }
+    return [
+      '    <item>',
+      `      <title>${escape(title)}</title>`,
+      `      <link>${escape(link)}</link>`,
+      date ? `      <pubDate>${escape(new Date(date).toUTCString())}</pubDate>` : '',
+      authorStr ? `      <author>${escape(authorStr)}</author>` : '',
+      description ? `      <description>${escape(description)}</description>` : '',
+      bodyHtml ? `      <content:encoded><![CDATA[${bodyHtml}]]></content:encoded>` : '',
+      '    </item>'
+    ].filter(Boolean).join('\n');
+  }).join('\n');
+
+  const rssXml = [
+    '<?xml version="1.0" encoding="UTF-8" ?>',
+    '<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/">',
+    '  <channel>',
+    `    <title>${escape(channelTitle)}</title>`,
+    `    <link>${escape(baseUrl || '')}</link>`,
+    `    <description>${escape(channelDescription)}</description>`,
+    itemsXml,
+    '  </channel>',
+    '</rss>'
+  ].join('\n');
+
+  return rssXml;
+}
+
 function resolveThumbnailPath(filePath, thumbnailRelPath, listingPageDir) {
   const docDir = path.dirname(filePath);
   const absThumb = path.resolve(docDir, thumbnailRelPath);
@@ -262,7 +344,8 @@ function resolveContentFiles(contentsList) {
 const assemblyFunctions = {
   summary: assembleSummaryAST,
   table: assembleTableAST,
-  grid: assembleGridAST
+  grid: assembleGridAST,
+  rss: assembleRSSXML
 };
 
 const listingDirective = {
@@ -288,6 +371,11 @@ const listingDirective = {
     type: {
       type: String,
       doc: 'Type of assembly function to use (e.g., "summary").'
+    },
+    baseUrl: {
+      type: String,
+      doc: 'Base URL to prefix to links in RSS output.',
+      alias: ['base-url']
     },
     'grid-columns': {
       type: String,
@@ -336,6 +424,7 @@ const listingDirective = {
     const sortFields = sortOption.split(',').map(s => s.trim()).filter(Boolean);
     const maxItems = options.maxItems || Infinity;
     const type = options.type || 'summary';
+    const baseUrl = options.baseUrl || options['base-url'] || '';
     // Accept comma-delimited string for gridColumns
     const gridCols = gridColumns.split(',').map(s => Number(s.trim())).filter(n => !isNaN(n));
     const imageWidth = options.imageWidth || options['image-width'] || '';
@@ -438,14 +527,18 @@ const listingDirective = {
     // Select the appropriate assembly function
     const assemblyFunction = assemblyFunctions[type] || assembleSummaryAST;
 
-    // After assembly
-    const result = (type === 'grid')
-      ? assemblyFunction(limitedFileData, gridCols, imageWidth, imageHeight, gridIncludeBody, gridCardHeaderTemplate)
-      : (type === 'summary')
-        ? assemblyFunction(limitedFileData, imageWidth, imageHeight)
-        : assemblyFunction(limitedFileData);
+    // Select the appropriate assembly function and call with correct arguments
+    let result;
+    if (type === 'rss') {
+      result = assemblyFunction(limitedFileData, options.baseUrl);
+    } else if (type === 'grid') {
+      result = assemblyFunction(limitedFileData, gridCols, imageWidth, imageHeight, gridIncludeBody, gridCardHeaderTemplate);
+    } else if (type === 'summary') {
+      result = assemblyFunction(limitedFileData, imageWidth, imageHeight);
+    } else {
+      result = assemblyFunction(limitedFileData);
+    }
 
-    //console.log('AST result:', JSON.stringify(result, null, 2));
     return result;
   }
 };
