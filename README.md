@@ -7,7 +7,8 @@ This feature was inspired by Quarto's [Document Listings](https://quarto.org/doc
 ## Installation
 
 1. Place `listing.mjs` in your project root or a suitable location.
-2. Register the plugin in your `myst.yml`:
+1. Register the plugin in your `myst.yml`:
+1. (optional) Copy `myst-plugin-driver.mjs` to your project root or a suitable location so that you can run the plugin after `myst build`.
 
 ```yaml
 project:
@@ -33,9 +34,9 @@ project:
     npm install glob
     ```
 
-`myst-plugin-driver.mjs` dependencies:
+`myst-plugin-driver.mjs` requires all of the above, plus:
 
- - `commander` is used with parse command-line options.
+ - `commander` is used to parse command-line options.
     ```bash
     npm install commander
     ```
