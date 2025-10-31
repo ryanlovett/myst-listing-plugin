@@ -104,30 +104,50 @@ function assembleSummaryAST(fileData, imageWidth, imageHeight) {
     };
   });
 
-  return [{
-    type: 'table',
-    children: tableRows
-  }];
+  return [
+    {
+      type: 'table',
+      children: tableRows
+    }
+  ];
 }
 
-function assembleTableAST(fileData) {
-  // Build AST nodes for table output
+function assembleTableAST(fileData, columns = ['date', 'title', 'author']) {
+  // Build AST nodes for table output with configurable columns
+  
+  // Helper to capitalize first letter
+  const capitalize = (str) => str.charAt(0).toUpperCase() + str.slice(1);
+  
+  // Helper to determine cell position class based on index
+  const getCellPositionClass = (index, total) => {
+    if (total === 1) return 'listing-table-cell-middle';
+    if (index === 0) return 'listing-table-cell-left';
+    if (index === total - 1) return 'listing-table-cell-right';
+    return 'listing-table-cell-middle';
+  };
+  
+  // Build header row based on columns
   const headerRow = {
     type: 'tableRow',
-    children: [
-      { type: 'tableCell', class: 'listing-table-cell-left', children: [{ type: 'paragraph', class: 'listing-table-date-header', children: [{ type: 'text', value: 'Date' }] }] },
-      { type: 'tableCell', class: 'listing-table-cell-middle', children: [{ type: 'paragraph', class: 'listing-table-title-header', children: [{ type: 'text', value: 'Title' }] }] },
-      { type: 'tableCell', class: 'listing-table-cell-right', children: [{ type: 'paragraph', class: 'listing-table-author-header', children: [{ type: 'text', value: 'Author' }] }] }
-    ]
+    children: columns.map((col, index) => ({
+      type: 'tableCell',
+      class: getCellPositionClass(index, columns.length),
+      children: [{
+        type: 'paragraph',
+        class: `listing-table-${col}-header`,
+        children: [{ type: 'text', value: capitalize(col) }]
+      }]
+    }))
   };
 
-  const tableRows = fileData.map(({ title, author, date, filename }) => {
-    return {
-      type: 'tableRow',
-      children: [
-        { type: 'tableCell', children: [{ type: 'paragraph', class: 'listing-table-date', children: [{ type: 'text', value: date || '' }] }] },
-        {
+  // Build data rows based on columns
+  const tableRows = fileData.map(({ title, author, date, description, filename }) => {
+    const cells = columns.map((col, index) => {
+      // Special handling for title column - make it a link
+      if (col === 'title') {
+        return {
           type: 'tableCell',
+          class: getCellPositionClass(index, columns.length),
           children: [
             {
               type: 'paragraph',
@@ -141,9 +161,30 @@ function assembleTableAST(fileData) {
               ]
             }
           ]
-        },
-        { type: 'tableCell', children: [{ type: 'paragraph', class: 'listing-table-author', children: [{ type: 'text', value: author || '' }] }] }
-      ]
+        };
+      }
+      
+      // For other columns, just display the value
+      let value = '';
+      if (col === 'date') value = date || '';
+      else if (col === 'author') value = author || '';
+      else if (col === 'description') value = description || '';
+      else if (col === 'filename') value = filename || '';
+      
+      return {
+        type: 'tableCell',
+        class: getCellPositionClass(index, columns.length),
+        children: [{
+          type: 'paragraph',
+          class: `listing-table-${col}`,
+          children: [{ type: 'text', value: value }]
+        }]
+      };
+    });
+    
+    return {
+      type: 'tableRow',
+      children: cells
     };
   });
 
@@ -345,8 +386,14 @@ const assemblyFunctions = {
   summary: assembleSummaryAST,
   table: assembleTableAST,
   grid: assembleGridAST,
-  rss: assembleRSSXML
+  rss: assembleRSSXML,
+  json: assembleSummaryJSON
 };
+
+function assembleSummaryJSON(fileData) {
+  // Output only the items array as the top-level value
+  return JSON.stringify(fileData, null, 2);
+}
 
 const listingDirective = {
   name: 'listing',
@@ -405,6 +452,11 @@ const listingDirective = {
       type: String,
       doc: 'Template for the grid card header. Supports {title} and {date}. Default: {title}',
       alias: ['grid-card-header']
+    },
+    tableColumns: {
+      type: String,
+      doc: 'Comma-separated list of columns to display in table (e.g., "date, title"). Default: date, title, author',
+      alias: ['table-columns']
     }
   },
   run(data) {
@@ -432,6 +484,9 @@ const listingDirective = {
     const imagePlaceholder = options.imagePlaceholder || options['image-placeholder'] || '';
     const gridIncludeBody = options.gridIncludeBody || options['grid-include-body'] || false;
     const gridCardHeaderTemplate = options.gridCardHeader || options['grid-card-header'] || '{title}';
+    const tableColumns = options.tableColumns || options['table-columns'] || 'date, title, author';
+    // Parse table columns into array
+    const tableCols = tableColumns.split(',').map(s => s.trim()).filter(Boolean);
 
     // files is now a list of relative paths; resolve to absolute for reading
     const listingPageDir = path.dirname(data.file?.path || process.cwd());
@@ -535,6 +590,10 @@ const listingDirective = {
       result = assemblyFunction(limitedFileData, gridCols, imageWidth, imageHeight, gridIncludeBody, gridCardHeaderTemplate);
     } else if (type === 'summary') {
       result = assemblyFunction(limitedFileData, imageWidth, imageHeight);
+    } else if (type === 'json') {
+      result = assemblyFunction(limitedFileData, maxItems, baseUrl);
+    } else if (type === 'table') {
+      result = assemblyFunction(limitedFileData, tableCols);
     } else {
       result = assemblyFunction(limitedFileData);
     }
