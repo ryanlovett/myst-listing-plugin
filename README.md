@@ -69,6 +69,16 @@ Display document attributes in a simple table. You can use comma-separated value
 :::
 ```
 
+You can customize which columns to display using the `:table-columns:` option:
+
+```
+:::{listing}
+:contents: apple.md,orange.md,banana.md
+:type: table
+:table-columns: date, title, description
+:::
+```
+
 ### Grid Example
 
 Display all blog post `index.md` files in a grid.
@@ -85,6 +95,27 @@ Display all blog post `index.md` files in a grid.
 :::
 ```
 
+### JSON Output
+
+Output document metadata as JSON (useful for APIs or custom processing). The `:sort:` option controls the order of items in the output array:
+
+```
+:::{listing}
+:contents: blog/*/index.md
+:type: json
+:max-items: 10
+:sort: date desc
+:::
+```
+
+### RSS Feed
+
+Generate an RSS feed from documents (typically used with the command-line driver):
+
+```
+./myst-plugin-driver.mjs --file blog.md --directive listing --type rss --baseUrl https://example.com
+```
+
 ## Directive Options
 
 | Option              | Type     | Description                                                                                       |
@@ -92,7 +123,8 @@ Display all blog post `index.md` files in a grid.
 | contents            | String   | Comma-separated list of directories, files, or glob patterns to include.                          |
 | sort                | String   | Comma-separated fields to sort by (e.g., `date desc, title`).                                     |
 | maxItems            | Number   | Maximum number of items to display. Alias: `max-items`.                                           |
-| type                | String   | Display type: `summary` (default), `table`, or `grid`.                                            |
+| type                | String   | Display type: `summary` (default), `table`, `grid`, `json`, or `rss`.                             |
+| table-columns       | String   | Comma-separated list of columns to display in table (e.g., `date, title, description`). Default: `date, title, author`. Alias: `tableColumns`. |
 | grid-columns        | String   | Comma-separated grid column sizes (e.g., `1,1,2,3` or `1` for full width).                        |
 | imageWidth          | String   | Width for thumbnail images (e.g., `120px`, `50%`). Alias: `image-width`.                         |
 | imageHeight         | String   | Height for thumbnail images (e.g., `120px`, `50%`). Alias: `image-height`.                       |
