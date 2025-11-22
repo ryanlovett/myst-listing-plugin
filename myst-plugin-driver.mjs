@@ -106,9 +106,26 @@ function dashToCamel(str) {
 }
 
 // Parse colon-prefixed directive options (e.g., :key: value) into an object
+// Also extracts body content if present (after a blank line)
 function parseColonOptions(str) {
   const options = {};
-  str.split('\n').forEach(line => {
+  const lines = str.split('\n');
+  let inOptions = true;
+  const optionLines = [];
+  const bodyLines = [];
+  
+  for (const line of lines) {
+    if (inOptions && line.match(/^:[^:]+:/)) {
+      optionLines.push(line);
+    } else if (inOptions && line.trim() === '') {
+      inOptions = false; // blank line marks end of options
+    } else if (!inOptions) {
+      bodyLines.push(line);
+    }
+  }
+  
+  // Parse options
+  optionLines.forEach(line => {
     const match = line.match(/^:([^:]+):\s*(.*)$/);
     if (match) {
       let key = match[1].trim();
@@ -121,7 +138,17 @@ function parseColonOptions(str) {
       options[key] = value;
     }
   });
-  return options;
+  
+  // Parse body content as markdown AST if present
+  // Return both options and body separately
+  const bodyContent = bodyLines.join('\n').trim();
+  let body = null;
+  if (bodyContent) {
+    const bodyAst = mystParse(bodyContent);
+    body = bodyAst.children || [];
+  }
+  
+  return { options, body };
 }
 
 const directiveNode = findDirectiveById(ast, directiveName, overrideId);
@@ -131,14 +158,18 @@ if (!directiveNode) {
 }
 
 let options = {};
+let body = null;
 if (directiveNode.value) {
-  options = parseColonOptions(directiveNode.value);
+  const parsed = parseColonOptions(directiveNode.value);
+  options = parsed.options;
+  body = parsed.body;
 }
 // Merge CLI unknown options (CLI takes precedence)
 options = { ...options, ...unknownOptions };
 
 const data = {
   options,
+  body,
   file: {
     path: filePath
   }

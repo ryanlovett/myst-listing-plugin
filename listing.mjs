@@ -20,7 +20,7 @@ function extractAuthors(authorField) {
   return '';
 }
 
-function assembleSummaryAST(fileData, imageWidth, imageHeight) {
+function assembleSummaryAST(fileData, bodyNodes = [], imageWidth, imageHeight) {
   // Build AST nodes for summary output (default)
   const tableRows = fileData.map(({ title, author, date, description, thumbnail, filename }) => {
     const cells = [];
@@ -105,6 +105,7 @@ function assembleSummaryAST(fileData, imageWidth, imageHeight) {
   });
 
   return [
+    ...bodyNodes,
     {
       type: 'table',
       children: tableRows
@@ -112,7 +113,7 @@ function assembleSummaryAST(fileData, imageWidth, imageHeight) {
   ];
 }
 
-function assembleTableAST(fileData, columns = ['date', 'title', 'author']) {
+function assembleTableAST(fileData, bodyNodes = [], columns = ['date', 'title', 'author']) {
   // Build AST nodes for table output with configurable columns
   
   // Helper to capitalize first letter
@@ -188,10 +189,13 @@ function assembleTableAST(fileData, columns = ['date', 'title', 'author']) {
     };
   });
 
-  return [{
-    type: 'table',
-    children: [headerRow, ...tableRows]
-  }];
+  return [
+    ...bodyNodes,
+    {
+      type: 'table',
+      children: [headerRow, ...tableRows]
+    }
+  ];
 }
 
 function renderGridCardHeader(template, title, date, url) {
@@ -210,7 +214,7 @@ function renderGridCardHeader(template, title, date, url) {
   };
 }
 
-function assembleGridAST(fileData, gridColumns = [1, 1, 2, 3], imageWidth, imageHeight, gridIncludeBody, gridCardHeaderTemplate) {
+function assembleGridAST(fileData, bodyNodes = [], gridColumns = [1, 1, 2, 3], imageWidth, imageHeight, gridIncludeBody, gridCardHeaderTemplate) {
   // Build AST nodes for grid output
   const columns = Array.isArray(gridColumns) ? gridColumns.map(Number) : String(gridColumns).split(' ').map(Number);
 
@@ -266,10 +270,13 @@ function assembleGridAST(fileData, gridColumns = [1, 1, 2, 3], imageWidth, image
     })
   };
 
-  return [grid];
+  return [
+    ...bodyNodes,
+    grid
+  ];
 }
 
-function assembleRSSXML(fileData, baseUrl) {
+function assembleRSSXML(fileData, bodyNodes = [], rssBaseUrl = '', rssChannelTitle = null) {
   // Helper to render bodyNodes as HTML
   const renderNode = (node) => {
     if (node.type === 'paragraph') {
@@ -301,19 +308,24 @@ function assembleRSSXML(fileData, baseUrl) {
 
   const escape = (str) => String(str || '').replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 
-  // Get channel title and description from the first file's frontmatter if available
-  let channelTitle = 'RSS Feed';
+  // Get channel title and description
+  let channelTitle = rssChannelTitle || 'RSS Feed';
   let channelDescription = '';
-  if (fileData.length > 0) {
-    if (fileData[0].title) channelTitle = fileData[0].title;
+  
+  // Use body nodes for channel description if provided
+  // Render as HTML for RSS readers that support it
+  if (bodyNodes && bodyNodes.length > 0) {
+    channelDescription = bodyNodes.map(renderNode).join('');
+  } else if (fileData.length > 0) {
+    // Fallback to first file's description
     if (fileData[0].description) channelDescription = fileData[0].description;
   }
 
   const itemsXml = fileData.map(({ title, authors, date, description, filename, bodyNodes }) => {
-    // Ensure link is absolute using baseUrl
+    // Ensure link is absolute using rssBaseUrl
     let link = '';
-    if (baseUrl) {
-      const base = baseUrl.replace(/\/$/, '');
+    if (rssBaseUrl) {
+      const base = rssBaseUrl.replace(/\/$/, '');
       const rel = filename.replace(/\.md$/, '');
       link = `${base}/${rel}`;
     } else {
@@ -341,12 +353,15 @@ function assembleRSSXML(fileData, baseUrl) {
     '<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/">',
     '  <channel>',
     `    <title>${escape(channelTitle)}</title>`,
-    `    <link>${escape(baseUrl || '')}</link>`,
-    `    <description>${escape(channelDescription)}</description>`,
+    `    <link>${escape(rssBaseUrl || '')}</link>`,
+    // Use CDATA for description if it contains HTML, otherwise escape it
+    channelDescription ? (channelDescription.includes('<') 
+      ? `    <description><![CDATA[${channelDescription}]]></description>`
+      : `    <description>${escape(channelDescription)}</description>`) : '',
     itemsXml,
     '  </channel>',
     '</rss>'
-  ].join('\n');
+  ].filter(Boolean).join('\n');
 
   return rssXml;
 }
@@ -400,6 +415,10 @@ const listingDirective = {
   doc: 'A directive to include a document listing.',
   alias: ['document-listing'],
   arg: {},
+  body: {
+    type: 'myst',
+    doc: 'Optional descriptive content. For grid/table/summary outputs, this content is rendered before the listing. For RSS output, this content becomes the channel description.'
+  },
   options: {
     contents: {
       type: String,
@@ -419,10 +438,15 @@ const listingDirective = {
       type: String,
       doc: 'Type of assembly function to use (e.g., "summary").'
     },
-    baseUrl: {
+    rssBaseUrl: {
       type: String,
       doc: 'Base URL to prefix to links in RSS output.',
-      alias: ['base-url']
+      alias: ['rss-base-url', 'baseUrl', 'base-url']
+    },
+    rssChannelTitle: {
+      type: String,
+      doc: 'Title for the RSS channel (only used for RSS output).',
+      alias: ['rss-channel-title']
     },
     'grid-columns': {
       type: String,
@@ -468,6 +492,10 @@ const listingDirective = {
           children: [{ type: 'text', value: 'No directory specified.' }]
         }];
     }
+    
+    // Extract body nodes (passed by MyST as an array of AST nodes)
+    const bodyNodes = data.body || [];
+    
     const contentsList = contentsOption.split(',').map(s => s.trim()).filter(Boolean);
     let files = resolveContentFiles(contentsList);
     const sortOption = options.sort || 'date desc, title';
@@ -476,7 +504,7 @@ const listingDirective = {
     const sortFields = sortOption.split(',').map(s => s.trim()).filter(Boolean);
     const maxItems = options.maxItems || Infinity;
     const type = options.type || 'summary';
-    const baseUrl = options.baseUrl || options['base-url'] || '';
+    const rssBaseUrl = options.rssBaseUrl || options['rss-base-url'] || options.baseUrl || options['base-url'] || '';
     // Accept comma-delimited string for gridColumns
     const gridCols = gridColumns.split(',').map(s => Number(s.trim())).filter(n => !isNaN(n));
     const imageWidth = options.imageWidth || options['image-width'] || '';
@@ -487,6 +515,7 @@ const listingDirective = {
     const tableColumns = options.tableColumns || options['table-columns'] || 'date, title, author';
     // Parse table columns into array
     const tableCols = tableColumns.split(',').map(s => s.trim()).filter(Boolean);
+    const rssChannelTitle = options.rssChannelTitle || options['rss-channel-title'] || null;
 
     // files is now a list of relative paths; resolve to absolute for reading
     const listingPageDir = path.dirname(data.file?.path || process.cwd());
@@ -585,15 +614,15 @@ const listingDirective = {
     // Select the appropriate assembly function and call with correct arguments
     let result;
     if (type === 'rss') {
-      result = assemblyFunction(limitedFileData, options.baseUrl);
+      result = assemblyFunction(limitedFileData, bodyNodes, rssBaseUrl, rssChannelTitle);
     } else if (type === 'grid') {
-      result = assemblyFunction(limitedFileData, gridCols, imageWidth, imageHeight, gridIncludeBody, gridCardHeaderTemplate);
+      result = assemblyFunction(limitedFileData, bodyNodes, gridCols, imageWidth, imageHeight, gridIncludeBody, gridCardHeaderTemplate);
     } else if (type === 'summary') {
-      result = assemblyFunction(limitedFileData, imageWidth, imageHeight);
+      result = assemblyFunction(limitedFileData, bodyNodes, imageWidth, imageHeight);
     } else if (type === 'json') {
-      result = assemblyFunction(limitedFileData, maxItems, baseUrl);
+      result = assemblyFunction(limitedFileData);
     } else if (type === 'table') {
-      result = assemblyFunction(limitedFileData, tableCols);
+      result = assemblyFunction(limitedFileData, bodyNodes, tableCols);
     } else {
       result = assemblyFunction(limitedFileData);
     }

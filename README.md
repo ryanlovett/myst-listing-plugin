@@ -113,8 +113,10 @@ Output document metadata as JSON (useful for APIs or custom processing). The `:s
 Generate an RSS feed from documents (typically used with the command-line driver):
 
 ```
-./myst-plugin-driver.mjs --file blog.md --directive listing --type rss --baseUrl https://example.com
+./myst-plugin-driver.mjs --file blog.md --directive listing --type rss --rssBaseUrl https://example.com --rssChannelTitle "My Blog"
 ```
+
+The body content of the listing directive (if present) will be used as the channel description in the RSS feed.
 
 ## Directive Options
 
@@ -131,6 +133,28 @@ Generate an RSS feed from documents (typically used with the command-line driver
 | imagePlaceholder    | String   | Default image to use if a document has no thumbnail. Alias: `image-placeholder`.                 |
 | gridIncludeBody     | Boolean  | If true, includes the document body in grid cards beneath the description. Alias: `grid-include-body`. |
 | gridCardHeader      | String   | Template for the grid card header. Supports `{title}` and `{date}`. Default: `{title}`. Alias: `grid-card-header`. |
+| rssBaseUrl          | String   | Base URL to prefix to links in RSS output. Aliases: `rss-base-url`, `baseUrl`, `base-url` (for backwards compatibility). |
+| rssChannelTitle     | String   | Title for the RSS channel. Alias: `rss-channel-title`.                                            |
+
+## Directive Body
+
+The listing directive accepts optional body content (parsed as MyST markdown) that serves as descriptive text:
+- **For visual outputs** (grid, table, summary): The body content is rendered before the listing
+- **For RSS output**: The body content becomes the channel `<description>` element (rendered as HTML in a CDATA section)
+
+This allows you to maintain descriptive text in one place that works for both web and RSS outputs.
+
+**Example:**
+
+```
+:::{listing}
+:contents: motd
+:type: grid
+
+ - Report problems - support@example.edu
+ - Read our docs   - https://example.com/docs
+:::
+```
 
 ## Frontmatter Fields
 
@@ -152,13 +176,14 @@ The `myst-plugin-driver.mjs` script allows you to simulate and debug MyST plugin
 To generate an RSS feed from a blog index using the `listing` directive:
 
 ```
-./myst-plugin-driver.mjs --file blog.md --directive listing --type rss --baseUrl https://example.com
+./myst-plugin-driver.mjs --file blog.md --directive listing --type rss --rssBaseUrl https://example.com --rssChannelTitle "My Blog"
 ```
 
 - `--file` (or `-f`): Path to the markdown file containing the directive.
 - `--directive` (or `-d`): The directive to simulate (default: `listing`).
 - `--type`: The type of listing output (e.g., `rss`, `table`, `grid`, etc.).
-- `--baseUrl`: The base URL to prefix to links in RSS output.
+- `--rssBaseUrl`: The base URL to prefix to links in RSS output (can also use `--baseUrl` for backwards compatibility).
+- `--rssChannelTitle`: The title for the RSS channel.
 
 ### Debugging Other Listing Types or Directives
 
