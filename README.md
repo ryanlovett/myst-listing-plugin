@@ -69,7 +69,7 @@ Display document attributes in a simple table. You can use comma-separated value
 :::
 ```
 
-You can customize which columns to display using the `:table-columns:` option:
+You can customize which columns to display using the `:tableColumns:` option:
 
 ```
 :::{listing}
@@ -126,7 +126,7 @@ The body content of the listing directive (if present) will be used as the chann
 | sort                | String   | Comma-separated fields to sort by (e.g., `date desc, title`).                                     |
 | maxItems            | Number   | Maximum number of items to display. Alias: `max-items`.                                           |
 | type                | String   | Display type: `summary` (default), `table`, `grid`, `json`, or `rss`.                             |
-| table-columns       | String   | Comma-separated list of columns to display in table (e.g., `date, title, description`). Default: `date, title, author`. Alias: `tableColumns`. |
+| tableColumns        | String   | Comma-separated list of columns to display in table (e.g., `date, title, description`). Default: `date, title, author`. Alias: `table-columns`. |
 | grid-columns        | String   | Comma-separated grid column sizes (e.g., `1,1,2,3` or `1` for full width).                        |
 | imageWidth          | String   | Width for thumbnail images (e.g., `120px`, `50%`). Alias: `image-width`.                         |
 | imageHeight         | String   | Height for thumbnail images (e.g., `120px`, `50%`). Alias: `image-height`.                       |
